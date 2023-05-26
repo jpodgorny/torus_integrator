@@ -1,6 +1,3 @@
-
-
-
 # Torus reflection integrator
 
 Create simple spectro-polarimetric table models with the help of this Python class.
@@ -94,84 +91,52 @@ You can refer to the [examples](tree/main/examples) folder for a complete and co
 
 ## Documentation
 
-### XspecTableModelAdditive class
+### TorusModel class
 
-Use `XspecTableModelAdditive` class to create an additive table model.
-
-```
-class XspecTableModelAdditive(file_name, model_name, energies, params, redshift=False)
-```
-
-Creates the class instance and opens the FITS file from the filesystem if it exists already or creates a new one.
-
-**file_name**  
-The path to the FITS file that will be created in the filesystem.  
-**model_name**  
-The name of the model (letters only, 12 characters max).  
-**energies**  
-Array of energies to consider for spectra in [keV].  
-**params**  
-Array of parameters of the model. Each parameter is a tupe with 4 items:
-* **name** - name of the parameter (letters only, 12 characters max)
-* **grid** - array of parameter values (in increasing order).
-* **logarithmic** - True/False flag saying if Xspec shall interpolate in the parameter values linearly (False) or logarithmicaly (True)
-* **frozen** - True/False flag saying if Xspec shall initially set this parameter as frozen 
-Example: `par1 = ('mass', [10,20,30,40,50], False, False)`
-**redshift**
-If `redshift` parameter shall be added  by Xspec to the model (boolean). The `redshift` parameter will shift the model in energy space and divide by (1+z) factor.
-
-  Do not include a normalization parameter, it will be added by Xspec automaticaly.
-
-Example:
-```python
-energies = np.geomspace(1e-2, 1e+2, 100)
-param1 = ('alpha', np.linspace(-5,+5,20), False, False)
-param1 = ('beta', np.geomspace(1e-1,1e+1, 50), True, False)
-model = XspecTableModelAdditive('mymodel.fits', 'mymodel', energies, [param1,param2], False)
-```
-<br>
+Use `TorusModel` class to create a spectro-polarimetric reflection table model.
 
 ```
-def XspecTableModelAdditive.generator()
+class TorusModel(saving_directory, energies, parameters, all_spectra, \
+                         Theta_input, r_in_input, N_u, N_v, IQUs, primpols, \
+                         mues, Gamma)
 ```
-Gives an iterator that loops over all combinations of parameter values and allows to provide a spectrum for each row of the spectral table. The iterator returns a tuple with 4 items:
-* **index** - index of the row in the spectral table (shall be passed to `write()`)
-* **param_values** - array of parameter values for the current spectral row (values are in the same order in which parameters have been passed to the class constructor)
-* **param_indexes** - array of parameter indexes for the current spectral row (not really needed, but provided for completeness; you can use the index to get the parameter value from the parameter value grid)
-* **energies** - array of energies in [keV] (a copy of the energy grid passed to the class constructor)
+Stores an ASCII torus model for these user-defined values. Energy binning is expected to be loaded from one sample local reflection table.
 
-The iterator skips any rows that have the spectra filled already. In that way, if the FITS file have existed before, only the missing spectra are computed and so the script allows for a recovery from an interrupted run. On the other hand, if you want to start over, you need to remove the existing FITS file before starting the script.
+**saving_directory**
+path to the directory where to save the results
+**energies**
+a tuple of (e_low, e_high), i.e. lower, upper bin boundaries, each being a list containing floats of energy values, as they appear in the local reflection tables
+**parameters**
+a tuple of (saved_mui, saved_mue, saved_Phi), each being a list containing floats of local reflection angles, as they appear in the local reflection tables
+**all_spectra**
+a list of the stored Stokes parameters, each being a list of energy-dependent values in ['UNPOL','HRPOL','45DEG'] sublist for each primary polarization state, as they appear in the local reflection tables 
+**Theta_input**
+a string of half-opening angle from the pole in degrees
+**r_in_input**
+a string of inner radius of the circular torus in arbitrary units
+**N_u**
+int number of points tried in u direction in linear binning across 180 degrees between 90° and 270° (the other symmetric half-space is added)
+**N_v**
+int number of points tried in v direction in linear binning between the shadow line and equatorial plane (i.e. 180° - Theta <= v <= 180°)
+**IQUs**
+a list of spectra to be computed, i.e. their names in strings, as they appear in the local reflection tables
+**primpols**
+a list of arbitrary primary polarizations to be computed, i.e. tuples containing (name string, p0 float, chi0 float) on which we use the S-formula
+**mues**
+a list of cosines of observer's inclinations from the pole to be computed, i.e. strings of any numbers between 0 and 1
+**Gamma**
+the power-law index to be computed for, i.e. a string as it appears in the local reflection tables
 
-Example:
-```python
-model = XspecTableModelAdditive(...)
-for g in fits.generator():
-    index, param_values, param_indexes, energies = g
-    Iv = spectrum(energies, param_values)
-    model.write(index, Iv, False)
-#end if
+### LocalPoint class
+
+Use 'LocalPoint' class to make all computations in the local reflection frame on the toroidal inner walls.
 ```
-<br>
-
+class LocalPoint(u_point, v_point)
 ```
-def XspecTableModelAdditive.write(index, spectrum, flush=False)
-```
-Write a single spectrum to the table. 
-**index**  
-Row index of the spectrum (given by the generator).  
-**spectrum**  
-Energy spectrum (specific flux) in [erg/s/cm2/keV] given at each point of the energy grid.  
-**flush**  
-If True, the model table is saved to the file system after the spectrum is written.
 
-**Note**: XSPEC requires the table model to contain spectra in units of photons/cm/s (photon spectrum integrated over the energy bin). The spectrum that is passed to `write()` method, however, must be an energy spectrum (specific flux) given at each energy point (not integrated). The integration and conversion to photon spectrum is done inside the function.
-<br>
-
-```
-def XspecTableModelAdditive.save()
-```
-Save the content of the FITS to the filesystem.
-
-
-
-# torus_integrator
+Makes the angular computations and table interpolations required at each illuminated point of the torus surface.
+        
+**u_point**
+a float of u in radians defining a point on the torus surface, typically u_mid of one bin
+**v_point**
+a float of v in radians defining a point on the torus surface, typically v_mid of one bin
