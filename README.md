@@ -87,7 +87,7 @@ for Gamma in Gammas:
                 TM.save_ascii(name, ener_lo, ener_hi, final_spectra)
 ```
 
-You can refer to the [examples](tree/main/examples) folder for a complete and commented example.
+You can refer to the [examples](tree/main/examples) folder for a complete and commented example. In the same folder you need to place the local reflection tables downloaded from: https://doi.org/10.6084/m9.figshare.16726207.
 
 ## Documentation
 
