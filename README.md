@@ -102,41 +102,41 @@ class TorusModel(saving_directory, energies, parameters, all_spectra, \
 ```
 Stores an ASCII torus model for these user-defined values. Energy binning is expected to be loaded from one sample local reflection table.
 
-**saving_directory**
+* **saving_directory**
 path to the directory where to save the results
-**energies**
+* **energies**
 a tuple of (e_low, e_high), i.e. lower, upper bin boundaries, each being a list containing floats of energy values, as they appear in the local reflection tables
-**parameters**
+* **parameters**
 a tuple of (saved_mui, saved_mue, saved_Phi), each being a list containing floats of local reflection angles, as they appear in the local reflection tables
-**all_spectra**
+* **all_spectra**
 a list of the stored Stokes parameters, each being a list of energy-dependent values in ['UNPOL','HRPOL','45DEG'] sublist for each primary polarization state, as they appear in the local reflection tables 
-**Theta_input**
+* **Theta_input**
 a string of half-opening angle from the pole in degrees
-**r_in_input**
+* **r_in_input**
 a string of inner radius of the circular torus in arbitrary units
-**N_u**
+* **N_u**
 int number of points tried in u direction in linear binning across 180 degrees between 90° and 270° (the other symmetric half-space is added)
-**N_v**
+* **N_v**
 int number of points tried in v direction in linear binning between the shadow line and equatorial plane (i.e. 180° - Theta <= v <= 180°)
-**IQUs**
+* **IQUs**
 a list of spectra to be computed, i.e. their names in strings, as they appear in the local reflection tables
-**primpols**
+* **primpols**
 a list of arbitrary primary polarizations to be computed, i.e. tuples containing (name string, p0 float, chi0 float) on which we use the S-formula
-**mues**
+* **mues**
 a list of cosines of observer's inclinations from the pole to be computed, i.e. strings of any numbers between 0 and 1
-**Gamma**
+* **Gamma**
 the power-law index to be computed for, i.e. a string as it appears in the local reflection tables
 
 ### LocalPoint class
 
-Use 'LocalPoint' class to make all computations in the local reflection frame on the toroidal inner walls.
+Use `LocalPoint` class to make all computations in the local reflection frame on the toroidal inner walls.
 ```
 class LocalPoint(u_point, v_point)
 ```
 
 Makes the angular computations and table interpolations required at each illuminated point of the torus surface.
         
-**u_point**
+* **u_point**
 a float of u in radians defining a point on the torus surface, typically u_mid of one bin
-**v_point**
+* **v_point**
 a float of v in radians defining a point on the torus surface, typically v_mid of one bin
