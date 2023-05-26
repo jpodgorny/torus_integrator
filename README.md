@@ -3,55 +3,94 @@
 
 # Torus reflection integrator
 
-Create XSPEC table models with the help of this Python class.
+Create simple spectro-polarimetric table models with the help of this Python class.
 
 ## Purpose
 
-Create table spectro-polarimetric models with the help of this Python class.
-
-This python module provides a class that helps to create the FITS file in the right format, so you only need to focus on getting your model spectra.
+This python module takes local spectro-polarimetric reflection tables from FITS files (described in Podgorný et al. 2022, available at https://doi.org/10.6084/m9.figshare.16726207). It puts a source of X-ray power-law in the center with energy binning, a power-law index Γ, and primary polarization according to the local reflection tables. The user defines a range of inner radii, torus half-opening angles and observer's inclinations, for which the final ASCII spectro-polarimetric tables are to be computed. Then the routine takes into account the visible and illuminated part of the inner walls of a pure circular torus and computes the integrated view for a distant observer, seeing a single reflection. Direct radiation or multiple scattering are not taken into account. The output tables show renormalized Stokes parameters I, Q, U dependent on energy, named according to the remaining model parameters and their values.
 
 ## Limitations
 
-* `XspecTableModelAdditive` class does not support so called "additional parameters" at the moment
-* only additive models can be created at the moment
+* only reflection from a pure circular torus can be computed at the moment
+* the routines need to be adapted to take into account different reflection tables
 
 ## Dependencies
 
-The module uses [AstroPy](https://www.astropy.org/) for writing the FITS files.
+The module uses [AstroPy](https://www.astropy.org/) for reading the FITS files and storing the ASCII files.
+
 
 ## Usage
 
-The basic usage involves importing the helper class from the module, creating an instace of `XspecTableModel` and filling the model with spectra. The skeleton looks like this:
+The basic usage involves importing the helper class from the module, creating an instace of `TorusModel` and filling the model with reflection tables. The skeleton looks like this:
 
 ```python
-from xspec_table_models import XspecTableModelAdditive
+from torus_integrator import TorusModel
 
-def spectrum(energies, param):
-	return [] # specific fluxes [erg/s/cm2/keV] for the grid of energies
+def get_energies_and_parameters(tables_directory, Gamma, e_min, e_max):
+	return [] # low and high energy bins, indices for spectral extraction, parameter values from given reflection tables
 #end def
 
-energies = [...]
-param1 = ('param1', [...], False, False)
+def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
+	return [] # loaded spectra from given reflection tables
+#end def
 
-fits = XspecTableModelAdditive('mymodel.fits', 'mymodel', energies, [param1, ...])
+saving_directory = './model_tables'
+tables_directory = '.'
 
-for g in fits.generator():
-    index, param_values, param_indexes, energies = g
-    param = param_values[0]
-    Iv = spectrum(energies, param)
-    fits.write(index, Iv, False)
-#end if
+# linear binning, not dynamic
+N_u = ... # across (90,270) degrees, the other half is symmetrically added
+N_v = ... # between the shadow line and the equatorial plane,
+         # i.e. 180°-Theta <= v <= 180°
 
-fits.save();
+# primary polarization states "(name, pol. frac., pol. ang.)" to be computed
+PPs = [...]
+
+# mu_e emission inclination cosines from the pole to be computed
+ms = [...]
+
+# r_in parameters, the torus inner radii (arbitrary units), to be computed
+inner_radii = [...]
+
+# Theta half-opening angles to be computed from the pole in degrees
+opening_angles = [...]
+
+# which Stokes parameters to compute - if polarization, then specify 
+# both 'Q' and 'U', even though Us will be zero in the end due to symmetry
+names_IQUs = [...]
+
+# Gammas primary power-law indices to be computed (need to be exactly as in 
+# the loaded local tables)
+Gammas = [...]
+
+for Gamma in Gammas:
+    E_min = ... # for low bin edge
+    E_max = ... # for low bin edge
+    # use any local reflection table to get the energy values and parameter 
+    # values
+    energies, first_ind, last_ind, parameters, collect \
+            = get_energies_and_parameters(tables_directory, float(Gamma), \
+                                                  E_min, E_max)
+    # get the relevant spectra per Gamma
+    all_spectra = []
+    for name_iqu in names_IQUs:
+        one_iqu = load_tables(tables_directory, name_iqu, first_ind, \
+                                      last_ind, collect)
+        all_spectra.append(one_iqu)
+        
+    # produce the table models
+    for r_in_input in inner_radii:
+        for Theta_input in opening_angles:
+            # my first model
+            TM = TorusModel(saving_directory, energies, parameters, \
+                                all_spectra, Theta_input, r_in_input, N_u, \
+                                N_v, names_IQUs, PPs, ms, Gamma)
+            for g in TM.generator():
+                name, ener_lo, ener_hi, final_spectra = g
+                # save to the desired directory
+                TM.save_ascii(name, ener_lo, ener_hi, final_spectra)
 ```
 
-Then within the XSPEC environment, you simply load your table model with
-```
-XSPEC> model atable{mymodel.fits}
-```
-
-You can refer to the [examples](tree/main/examples) folder for complete and commented examples.
+You can refer to the [examples](tree/main/examples) folder for a complete and commented example.
 
 ## Documentation
 
