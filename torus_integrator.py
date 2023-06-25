@@ -3,13 +3,13 @@
 """
 Created on June 1, 2023
 
-@author: Jakub Podgorny
+@author: Jakub Podgorny, jakub.podgorny@asu.cas.cz
 """
 import sys
 from operator import add
 from astropy.io import ascii
 import numpy as np
-from scipy.optimize import least_squares  
+from scipy.optimize import least_squares
 
 class TorusModel:
     # class variables with a needed default value
