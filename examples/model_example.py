@@ -3,7 +3,7 @@
 """
 Created on June 1, 2023
 
-@author: Jakub Podgorny
+@author: Jakub Podgorny, jakub.podgorny@asu.cas.cz
 """
 import sys
 from astropy.io import fits
@@ -157,7 +157,8 @@ ms = ['0.025','0.075','0.125','0.175','0.225','0.275','0.325','0.375', \
           '0.825','0.875','0.925','0.975']
 
 # r_in parameters, the torus inner radii (arbitrary units), to be computed
-inner_radii = ['0.01','0.05','0.1','0.5']
+# in the current version this does not impact the results at all
+inner_radii = ['0.05']
 
 # Theta half-opening angles to be computed from the pole in degrees
 opening_angles = ['25','30','35','40','45','50','55','60','65','70','75',\
