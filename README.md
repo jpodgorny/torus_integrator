@@ -4,7 +4,7 @@ Create simple spectro-polarimetric reflection models off a torus with the help o
 
 ## Purpose
 
-This python module takes local spectro-polarimetric reflection tables from FITS files (described in Podgorný et al. 2022, available at https://doi.org/10.6084/m9.figshare.16726207). It puts a source of X-ray power-law in the center with energy binning, a power-law index Gamma, and primary polarization according to the local reflection tables. The user defines a range of inner radii, torus half-opening angles and observer's inclinations, for which the final ASCII spectro-polarimetric tables are to be computed. Then the routine takes into account the visible and illuminated part of the inner walls of a pure circular torus and computes the integrated view for a distant observer, seeing a single reflection. Direct radiation or self-irradiation are not taken into account. The output tables show renormalized Stokes parameters I, Q, U dependent on energy, named according to the remaining model parameters and their values.
+This python module takes local spectro-polarimetric reflection tables from FITS files (described in Podgorný et al. 2022, available at https://doi.org/10.6084/m9.figshare.16726207, use version 2). It puts a source of X-ray power-law in the center with energy binning, a power-law index Gamma, and primary polarization according to the local reflection tables. The user defines a range of inner radii, torus half-opening angles and observer's inclinations, for which the final ASCII spectro-polarimetric tables are to be computed. Then the routine takes into account the visible and illuminated part of the inner walls of a pure circular torus and computes the integrated view for a distant observer, seeing a single reflection. Direct radiation or self-irradiation are not taken into account. The output tables show renormalized Stokes parameters I, Q, U dependent on energy, named according to the remaining model parameters and their values.
 
 For any issues regarding the use of xsstokes_torus, please, contact J. Podgorný at 
 [jakub.podgorny@asu.cas.cz](mailto:jakub.podgorny@asu.cas.cz) or M. Dovčiak
@@ -17,7 +17,7 @@ For any issues regarding the use of xsstokes_torus, please, contact J. Podgorný
 
 ## Dependencies
 
-The module uses [AstroPy](https://www.astropy.org/) for reading the FITS files and storing the ASCII files. It also requires the "visibility_line.txt" to be in the local directory.
+The module uses [AstroPy](https://www.astropy.org/) for reading the FITS files and storing the ASCII files. It also requires the "visibility_line.txt" to be in the local directory. See the routine headers for all required libraries.
 
 ## References
 
@@ -156,7 +156,7 @@ for Gamma in Gammas:
                     TM.save_ascii(name, ener_lo, ener_hi, final_spectra)
 ```
 
-You can refer to the [examples](tree/main/examples) folder for a complete and commented example. In the same folder you need to place the local reflection tables downloaded from: https://doi.org/10.6084/m9.figshare.16726207.
+You can refer to the [examples](tree/main/examples) folder for a complete and commented example. In the same folder you need to place the local reflection tables downloaded from: https://doi.org/10.6084/m9.figshare.16726207 (version 2).
 
 ## Documentation
 

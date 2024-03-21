@@ -134,9 +134,12 @@ class TorusModel:
             min_Theta = max(25.,Theta_limit)
             max_Theta = 90.
             
-            # Theta must be lower than 90 degrees
+            # Theta must be lower than 90 degrees and above the visibility line
             if float(self.Theta_input) == 1.:
-                true_Theta = 0.999999*(max_Theta - min_Theta) + min_Theta
+                true_Theta = 0.9999*(max_Theta - min_Theta) + min_Theta
+            elif float(self.Theta_input) == 0.:
+                true_Theta = float(self.Theta_input)*(max_Theta - min_Theta) \
+                                + min_Theta + 0.0001
             else:
                 true_Theta = float(self.Theta_input)*(max_Theta - min_Theta) \
                                 + min_Theta
