@@ -131,15 +131,17 @@ class TorusModel:
             interp_func_x = interp1d(vis_inc, vis_Theta, kind='linear', \
                                      fill_value="extrapolate")
             Theta_limit = interp_func_x(self.inc_tot/np.pi*180.)
+            if Theta_limit >= 90.:
+                Theta_limit = 89.9999
             min_Theta = max(25.,Theta_limit)
             max_Theta = 90.
             
             # Theta must be lower than 90 degrees and above the visibility line
             if float(self.Theta_input) == 1.:
                 true_Theta = 0.9999*(max_Theta - min_Theta) + min_Theta
-            elif float(self.Theta_input) == 0.:
-                true_Theta = float(self.Theta_input)*(max_Theta - min_Theta) \
-                                + min_Theta + 0.0001
+            elif float(self.Theta_input) < 0.01:
+                true_Theta = 0.01*(max_Theta - min_Theta) \
+                                + min_Theta
             else:
                 true_Theta = float(self.Theta_input)*(max_Theta - min_Theta) \
                                 + min_Theta
