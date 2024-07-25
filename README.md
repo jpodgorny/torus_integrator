@@ -21,9 +21,14 @@ The module uses [AstroPy](https://www.astropy.org/) for reading the FITS files a
 
 ## References
 
-Podgorný J, Dovčiak M, Marin F (2023)  
-_Simple numerical X-ray polarization models of reflecting axially symmetric structures around accreting compact objects_  
-[MNRAS, submitted]()
+Podgorný J, Dovčiak M, Marin F, Goosmann RW and Różańska A (2022)
+_Spectral and polarization properties of reflected X-ray emission from black hole accretion discs_
+[MNRAS, 510, pp.4723-4735](https://doi.org/10.1093/mnras/stab3714)
+[[arXiv:2201.07494](https://arxiv.org/abs/2201.07494)]
+
+Podgorný J, Dovčiak M, Marin F (2024)
+_Simple numerical X-ray polarization models of reflecting axially symmetric structures around accreting compact objects_
+[MNRAS, 530, pp.2608-2626](https://doi.org/10.1093/mnras/stae1009)
 [[arXiv:2310.15647](https://arxiv.org/abs/2310.15647)]
 
 ## Usage
