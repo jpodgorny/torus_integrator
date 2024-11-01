@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on March 20, 2024
+Created on November 1, 2024
 
 @author: Jakub Podgorny, jakub.podgorny@asu.cas.cz
 """
@@ -237,7 +237,7 @@ class TorusModel:
     def calculate_v_lim(self):
         # calculating the visibility boundary
         
-        local_v_limit = - np.arctan( 2 * np.sin(TorusModel.u_m) * \
+        local_v_limit = - np.arctan( np.sin(TorusModel.u_m) * \
                             np.tan(self.inc_tot) ) + np.pi
         
         if self.below_equator and \
@@ -253,7 +253,7 @@ class TorusModel:
         
         x, y, z = p
         brack = self.R + self.r*np.cos(x)
-        v_limit_t = - np.arctan(2*np.sin(z)*np.tan(self.inc_tot)) + np.pi
+        v_limit_t = - np.arctan(np.sin(z)*np.tan(self.inc_tot)) + np.pi
         brack2 = self.R + self.r*np.cos(v_limit_t)
         
         eq1 = brack*np.cos(TorusModel.u_m) - brack2*np.cos(z)
