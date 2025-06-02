@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mar 20, 2024
+Created on Jun 2, 2025
 
 @author: Jakub Podgorny, jakub.podgorny@asu.cas.cz
 """
@@ -19,7 +19,7 @@ def get_energies_and_parameters(tables_directory, Gamma, e_min, e_max):
     # the order of parameters is linked to coefficients order
     # in the interpolation routine
     
-    one_table = tables_directory + '/stokes_I_UNPOL.fits'
+    one_table = tables_directory + '/stokes_unified_I_UNPOL.fits'
     hdul = fits.open(one_table)
     
     # get energy values
@@ -71,56 +71,24 @@ def get_energies_and_parameters(tables_directory, Gamma, e_min, e_max):
     
     # prepare the lists
     collect = []
+    saved_xi = []
     saved_mui = []
     saved_mue = []
     saved_Phi = []    
     for r, row in enumerate(rows):
-        # only the lowest xi (most neutral) gets stored
-        if int(row[1]) == 1 and abs(float(row[0]) - Gamma) < 0.001:
+        if abs(float(row[0]) - Gamma) < 0.001:
             collect.append(r)
+            if round(float(row[1]),0) not in saved_xi:
+                saved_xi.append(round(float(row[1]),0))
             if round(float(row[2]),1) not in saved_mui:
                 saved_mui.append(round(float(row[2]),1))
             if float(row[3]) not in saved_Phi:
                 saved_Phi.append(float(row[3]))
             if round(float(row[4]),3) not in saved_mue:
-                saved_mue.append(round(float(row[4]),3))
-                
-    # get the lowest xi value that will be used
-    extname = 'XI(GAMMA)'
-    colnames = hdul[extname].columns.names
-    for c in range(len(colnames)):
-        rows = []
-        for i in range(len(hdul[extname].data)):
-            onerow = []
-            for j in range(len(hdul[extname].data[i])):
-                if j == c:
-                    if hasattr(hdul[extname].data[i][j], "__len__") and \
-                                not type(hdul[extname].data[i][j]) == str:
-                        for val in hdul[extname].data[i][j]:
-                            onerow.append(val)
-                    else:
-                        onerow.append(hdul[extname].data[i][j])
-            rows.append(onerow)
-        if c == 2:
-            gamma_xi = []
-            for r, row in enumerate(rows):
-                gamma_xi.append(row[0])
-        elif c == 1:
-            xi_indices = []
-            for r, row in enumerate(rows):
-                xi_indices.append(row[0])
-        elif c == 0:
-            xi_true = []
-            for r, row in enumerate(rows):
-                xi_true.append(row[0])
-        
-    for g in range(len(gamma_xi)):
-        # only the lowest xi (most neutral) gets stored
-        if int(xi_indices[g]) == 1 and abs(float(gamma_xi[g]) - Gamma) < 0.001:
-            xi = float(xi_true[g])
+                saved_mue.append(round(float(row[4]),3))   
     
     return (ener_lo, ener_hi), which_indices[0], which_indices[-1], \
-                (saved_mui, saved_mue, saved_Phi), collect, xi
+                (saved_xi, saved_mui, saved_mue, saved_Phi), collect
         
 def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
     # a custom routine to load reflection tables in which we would like to 
@@ -128,12 +96,13 @@ def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
     # the order of parameters is linked to coefficients order
     # in the interpolation routine
     
+    # partially ionized tables
     three_pols = []    
     # this needs to be done in the corresponding order in
     # interpolation_incident() routine in torus_integrator.py
-    for origp in ['UNPOL','HRPOL','45DEG']:
+    for origp in ['UNPOL','VRPOL','45DEG']:
         print('Primary polarization: '+ origp)
-        one_table = tables_directory+'/stokes_'+name_IQU+'_'+origp+'.fits'
+        one_table = tables_directory+'/stokes_unified_'+name_IQU+'_'+origp+'.fits'
         hdul = fits.open(one_table)
         extname = 'SPECTRA'        
         c = 1 # spectra, not parameter values
@@ -170,9 +139,72 @@ def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
     loaded_spectra = []
     for s in range(len(three_pols[0])):
         loaded_spectra.append([three_pols[0][s],three_pols[1][s], \
+                                   three_pols[2][s]])
+
+    # neutral tables
+    three_pols = []    
+    # this needs to be done in the corresponding order in
+    # interpolation_incident() routine in torus_integrator.py
+    for origp in ['UNPOL','VRPOL','45DEG']:
+        print('Primary polarization: '+ origp)
+        one_table = tables_directory+'/stokes_tables_neutral_'+name_IQU+'_'+origp+'.fits'
+        hdul = fits.open(one_table)
+        extname = 'SPECTRA'        
+        c = 1 # spectra, not parameter values
+        rows = []
+        for i in range(len(hdul[extname].data)):
+            if i % 100000 == 0:
+                print(i,'/',len(hdul[extname].data))
+            onerow = []
+            for j in range(len(hdul[extname].data[i])):
+                if j == c:
+                    if hasattr(hdul[extname].data[i][j], "__len__") and \
+                                not type(hdul[extname].data[i][j]) == str:
+                        for val in hdul[extname].data[i][j]:
+                            onerow.append(val)
+                    else:
+                        onerow.append(hdul[extname].data[i][j])
+            rows.append(onerow)
+        
+        # save spectra
+        spectra = []
+        for r, row in enumerate(rows):
+            if r in collect:
+                newrow = []
+                for e in range(len(row)):
+                    if first_ind <= e <= last_ind:
+                        # arbitrary normalization factor,
+                        # if changed, change for imaging normalization
+                        # inside torus_integrator.py as "K_factor" variable
+                        newrow.append(row[e]/10.**14.)                
+                spectra.append(newrow)        
+        three_pols.append(spectra)
+        
+    # rearrange
+    loaded_spectra_neutral = []
+    for s in range(len(three_pols[0])):
+        loaded_spectra_neutral.append([three_pols[0][s],three_pols[1][s], \
                                    three_pols[2][s]])        
     
-    return loaded_spectra
+    return loaded_spectra, loaded_spectra_neutral
+
+# choose geometry type
+# 'torus' = classical elliptical concave torus,
+# 'cone' = double cone with straight walls,
+# 'bowl' = elliptical convex double cone, i.e. inverted elliptical torus
+geometry_list = ['cone','bowl']
+
+# choose source type
+# 'iso', a(mu) = 1, isotropic source
+# 'csource', a(mu) = 2*mu, a cosine source
+# 'slabcorona', a(mu) from Eq.(26) in Nitindala et al. (2025), a slab corona example
+# - provides polarization prescription too
+# 'edisc', a(mu) from Eq. (27) in Nitndala et al. (2025), an electron-scattering dominated disc
+# - provides polarization prescription too (Eq. (41) in Viironen & Poutanen (2004))
+inctype_list = ['iso','csource','slabcorona','edisc']
+
+# whether to produce text files with primary radiation (non-zero for i < Theta)
+produce_primary = True
 
 # if producing images, create also the "images" and "images_data" directories
 # inside the saving directory, in order to store the image there
@@ -189,48 +221,71 @@ N_v = 80 # between the upper shadow line and the equatorial plane or lower
          # shadow line, i.e.
          # 180°-Theta <= v <= 180°, if below_equator == False;
          # 180°-Theta <= v <= 180°+Theta, if below_equator == True
+         # must be even for cone or bowl
 
-# primary polarization states "(name, pol. frac., pol. ang.)" to be computed
-PPs = [('UNPOL', 0., 0.), ('PERP100', 1., np.pi/2.), \
+# isotropic primary polarization states "(name, pol. frac., pol. ang.)" to be computed
+# inctype = 'slabcorona' and inctype = 'edisc' have given anisotropic primary polarization state,
+# then this value can be any
+PPs = [('UNPOL', 0., 0.), ('PARA100', 1., 0.), \
                ('45DEG100', 1., np.pi/4.)]
-
+    
 # 0 < mu_e < 1 emission inclination cosines from the pole to be computed
 ms = ['0.025','0.075','0.125','0.175','0.225','0.275','0.325','0.375', \
       '0.425','0.475','0.525','0.575','0.625','0.675','0.725','0.775', \
           '0.825','0.875','0.925','0.975']
-
+    
 # r_in parameters, the torus inner radii (arbitrary units), to be computed
 # in the current version this does not impact the results at all
-inner_radii = ['0.05']
+inner_radii = ['1.']
 
+# if float(xi_0) > 0 parameters to be computed via interpolation of the local reflection tables
+# if xi0 = '0.', then STOKES neutral spectro-polarimetric tables are used as if xi0 = 1.
+xi0s = ['10.','100.','1000.','10000.']
+
+# beta parameters to be computed
+betas = ['0.','2.']
+
+# rho parameters, i.e. the distance between the z-axis and the upper or lower
+# end of the illuminated part of the inner walls, put 'c' for a circular torus
+# in the 'torus' geometry
+rhos = ['1.','5.','10.','50.','100.']
+        
 # 1° <= Theta <= 89° half-opening angles to compute from the pole in degrees
+# for cone and elcone
 opening_angles_degrees = ['25','30','35','40','45','50','55','60','65','70', \
                           '75','80','85']
 # 0 <= Theta' <= 1 rescaled half-opening angles to be transformed to real 
 # Theta, depending on inclination
+# for torus
 opening_angles_transformed = ['0.00','0.05','0.10','0.15','0.20','0.25', \
                               '0.30','0.35','0.40','0.45','0.50','0.55', \
                               '0.60','0.65','0.70','0.75','0.80','0.85', \
                               '0.90','0.95','1.00']
-opening_angles = opening_angles_transformed
+#opening_angles = opening_angles_transformed
+opening_angles = opening_angles_degrees
 
 # which Stokes parameters to compute - if polarization, then specify 
 # both 'Q' and 'U', even though Us will be zero in the end due to symmetry
 names_IQUs = ['I','Q','U']
 
-# Gammas primary power-law indices to be computed (need to be exactly as in 
-# the loaded local tables)
-Gammas = ['2.0']
+# Gammas primary power-law indices, or T_BB primary temperature for single-temperature blackbody emission,
+# to be computed (need to be exactly as in the loaded local tables)
+# this is named always in the output as Gamma, even if it has a meaning of T_BB
+Gammas_or_TBBs = ['1.4','1.6','1.8','2.0','2.2','2.4','2.6','2.8','3.0']
 
 # Imaging: leave this list empty, if no imaging is needed
 # list of tuples of parameters, for which to provide images and image data,
-# each tuple will contain: (name of prim. pol., mu_e, Theta, Gamma)
+# each tuple will contain: (name of prim. pol., mu_e, Theta, Gamma or T_BB, r_in, rho, xi0, beta)
 image_list = []
 '''
-image_list = [('UNPOL','0.425','40','2.0'), \
-              ('UNPOL','0.925','40','2.0'), \
-              ('UNPOL','0.425','70','2.0'), \
-              ('UNPOL','0.925','70','2.0')]
+image_list = [('UNPOL','0.425','40','2.0','1.','10.','10.','2.'), \
+              ('UNPOL','0.875','40','2.0','1.','10.','10.','2.'), \
+              ('UNPOL','0.425','70','2.0','1.','10.','10.','2.'), \
+              ('UNPOL','0.875','70','2.0','1.','10.','10.','2.'), \
+                  ('UNPOL','0.425','40','2.0','1.','100.','10.','2.'), \
+                                ('UNPOL','0.875','40','2.0','1.','100.','10.','2.'), \
+                                ('UNPOL','0.425','70','2.0','1.','100.','10.','2.'), \
+                                ('UNPOL','0.875','70','2.0','1.','100.','10.','2.')]
 '''
 
 # imaging energy bands, provide a list of tuples of minimum and maximum
@@ -245,45 +300,54 @@ image_resolution = 25
 image_limits = [10.**(-8.),10.**(-3.)]
 
 last_time = int(time.time())
-for Gamma in Gammas:
-    print('beginning to compute Gamma: ', Gamma)
+for Gamma in Gammas_or_TBBs:
+    print('beginning to compute Gamma or T_BB: ', Gamma)
     
     # custom routines to get energies, parameters and spectra for
     # interpolation    
-    E_min = 1. # for low bin edge
+    E_min = 0.1 # for low bin edge
     E_max = 100. # for low bin edge
     # use any local reflection table to get the energy values and parameter 
     # values
     print('... loading energy values and parameter values')
-    energies, first_ind, last_ind, parameters, collect, xi \
+    energies, first_ind, last_ind, parameters, collect \
             = get_energies_and_parameters(tables_directory, float(Gamma), \
                                                   E_min, E_max)
     # get the relevant spectra per Gamma
     all_spectra = []
+    all_spectra_neutral = []
     for name_iqu in names_IQUs:
         print('... loading Stokes '+name_iqu)
-        one_iqu = load_tables(tables_directory, name_iqu, first_ind, \
+        one_iqu, one_iqu_neutral = load_tables(tables_directory, name_iqu, first_ind, \
                                       last_ind, collect)
         all_spectra.append(one_iqu)
-        
+        all_spectra_neutral.append(one_iqu_neutral)
+    
     # produce the table models
-    for r_in_input in inner_radii:
-        for Theta_input in opening_angles:
-            time_now = int(time.time())
-            print('currently computing reflection for r_in: ',r_in_input, \
-                  'and Theta: ', \
-                      Theta_input, 'after ', \
-                      round(abs(last_time-time_now)/60./60.,3), 'hours')
-            for mue in ms: 
-                
-                # my first model
-                TM = TorusModel(saving_directory, energies, parameters, \
-                                    all_spectra, Theta_input, r_in_input, \
-                                    N_u, N_v, names_IQUs, PPs, mue, Gamma, \
-                                    xi, below_equator, image_list, \
-                                    image_resolution, image_energy_ranges, \
-                                    image_limits)
-                for g in TM.generator():
-                    name, ener_lo, ener_hi, final_spectra = g
-                    # save to the desired directory
-                    TM.save_ascii(name, ener_lo, ener_hi, final_spectra)
+    for geometry in geometry_list:
+        for inctype in inctype_list:
+            for r_in_input in inner_radii:
+                for xi0_input in xi0s:
+                    for beta_input in betas:
+                        for rho_input in rhos:
+                            for Theta_input in opening_angles:
+                                time_now = int(time.time())
+                                print('currently computing reflection for r_in: ',r_in_input,\
+                                      'and Theta: ', \
+                                          Theta_input, 'after ', \
+                                          round(abs(last_time-time_now)/60./60.,3), 'hours')
+                                for mue in ms:
+                                    # let's compute a model for these parameter values
+                                    TM = TorusModel(saving_directory, energies, parameters,\
+                                                        all_spectra, all_spectra_neutral, Theta_input, r_in_input,\
+                                                        N_u, N_v, names_IQUs, PPs, mue, Gamma,\
+                                                        below_equator, image_list, \
+                                                        image_resolution, image_energy_ranges,\
+                                                        image_limits, geometry, rho_input, xi0_input, beta_input, \
+                                                        inctype, produce_primary)
+                                    for g in TM.generator():
+                                        name, ener_lo, ener_hi, final_spectra, final_spectra_prim = g
+                                        # save to the desired directory
+                                        TM.save_ascii(name, ener_lo, ener_hi, final_spectra)
+                                        if produce_primary == True:
+                                            TM.save_ascii_prim(name, ener_lo, ener_hi, final_spectra_prim)
