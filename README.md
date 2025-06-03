@@ -32,7 +32,7 @@ _Simple numerical X-ray polarization models of reflecting axially symmetric stru
 
 Podgorný J (2025)
 _Shape and ionization of equatorial matter near compact objects from X-ray polarization reflection signatures_
-[[arXiv:2506.XXX](https://arxiv.org/abs/2506.XXX)]
+[[arXiv:2506.01798](https://arxiv.org/abs/2506.01798)]
 
 ## Usage
 
