@@ -90,21 +90,21 @@ def get_energies_and_parameters(tables_directory, Gamma, e_min, e_max):
     return (ener_lo, ener_hi), which_indices[0], which_indices[-1], \
                 (saved_xi, saved_mui, saved_mue, saved_Phi), collect
         
-def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
-    # a custom routine to load reflection tables in which we would like to 
+def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect, Gamma, e_min, e_max):
+    # a custom routine to load reflection tables in which we would like to
     # interpolate
     # the order of parameters is linked to coefficients order
     # in the interpolation routine
-    
+
     # partially ionized tables
-    three_pols = []    
+    three_pols = []
     # this needs to be done in the corresponding order in
     # interpolation_incident() routine in torus_integrator.py
     for origp in ['UNPOL','VRPOL','45DEG']:
         print('Primary polarization: '+ origp)
         one_table = tables_directory+'/stokes_unified_'+name_IQU+'_'+origp+'.fits'
         hdul = fits.open(one_table)
-        extname = 'SPECTRA'        
+        extname = 'SPECTRA'
         c = 1 # spectra, not parameter values
         rows = []
         for i in range(len(hdul[extname].data)):
@@ -120,7 +120,7 @@ def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
                     else:
                         onerow.append(hdul[extname].data[i][j])
             rows.append(onerow)
-        
+
         # save spectra
         spectra = []
         for r, row in enumerate(rows):
@@ -131,25 +131,91 @@ def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
                         # arbitrary normalization factor,
                         # if changed, change for imaging normalization
                         # inside torus_integrator.py as "K_factor" variable
-                        newrow.append(row[e]/10.**14.)                
-                spectra.append(newrow)        
+                        newrow.append(row[e]/10.**14.)
+                spectra.append(newrow)
         three_pols.append(spectra)
-        
+
+
     # rearrange
     loaded_spectra = []
     for s in range(len(three_pols[0])):
         loaded_spectra.append([three_pols[0][s],three_pols[1][s], \
                                    three_pols[2][s]])
 
+    one_table = tables_directory+'/stokes_tables_neutral_'+name_IQU+'_'+origp+'.fits'
+    hdul = fits.open(one_table)
+
+    # get energy values for neutral tables
+    extname = 'ENERGIES'
+    colnames = hdul[extname].columns.names
+    for c in range(len(colnames)):
+        rows = []
+        for i in range(len(hdul[extname].data)):
+            onerow = []
+            for j in range(len(hdul[extname].data[i])):
+                if j == c:
+                    if hasattr(hdul[extname].data[i][j], "__len__") and \
+                                not type(hdul[extname].data[i][j]) == str:
+                        for val in hdul[extname].data[i][j]:
+                            onerow.append(val)
+                    else:
+                        onerow.append(hdul[extname].data[i][j])
+            rows.append(onerow)
+        if c == 0:
+            which_indices = []
+            ener_lo = []
+            for r, row in enumerate(rows):
+                if e_min <= row[0] <= e_max:
+                    ener_lo.append(row[0])
+                    which_indices.append(r)
+        elif c == 1:
+            ener_hi = []
+            for r, row in enumerate(rows):
+                if r in which_indices:
+                    ener_hi.append(row[0])
+
+    # get parameter values for neutral tables
+    extname = 'SPECTRA'
+    c = 0
+    rows = []
+    for i in range(len(hdul[extname].data)):
+        if i % 100000 == 0:
+            print(i,'/',len(hdul[extname].data))
+        onerow = []
+        for j in range(len(hdul[extname].data[i])):
+            if j == c:
+                if hasattr(hdul[extname].data[i][j], "__len__") and \
+                            not type(hdul[extname].data[i][j]) == str:
+                    for val in hdul[extname].data[i][j]:
+                        onerow.append(val)
+                else:
+                    onerow.append(hdul[extname].data[i][j])
+        rows.append(onerow)
+
+    # prepare the lists
+    collecth = []
+    saved_mui = []
+    saved_mue = []
+    saved_Phi = []
+    for r, row in enumerate(rows):
+        if abs(float(row[0]) - Gamma) < 0.001:
+            collecth.append(r)
+            if round(float(row[2]),1) not in saved_mui:
+                saved_mui.append(round(float(row[2]),1))
+            if float(row[3]) not in saved_Phi:
+                saved_Phi.append(float(row[3]))
+            if round(float(row[4]),3) not in saved_mue:
+                saved_mue.append(round(float(row[4]),3))
+
     # neutral tables
-    three_pols = []    
+    three_pols = []
     # this needs to be done in the corresponding order in
     # interpolation_incident() routine in torus_integrator.py
     for origp in ['UNPOL','VRPOL','45DEG']:
         print('Primary polarization: '+ origp)
         one_table = tables_directory+'/stokes_tables_neutral_'+name_IQU+'_'+origp+'.fits'
         hdul = fits.open(one_table)
-        extname = 'SPECTRA'        
+        extname = 'SPECTRA'
         c = 1 # spectra, not parameter values
         rows = []
         for i in range(len(hdul[extname].data)):
@@ -165,27 +231,30 @@ def load_tables(tables_directory, name_IQU, first_ind, last_ind, collect):
                     else:
                         onerow.append(hdul[extname].data[i][j])
             rows.append(onerow)
-        
+
         # save spectra
         spectra = []
         for r, row in enumerate(rows):
-            if r in collect:
+            if r in collecth:
                 newrow = []
                 for e in range(len(row)):
                     if first_ind <= e <= last_ind:
                         # arbitrary normalization factor,
                         # if changed, change for imaging normalization
                         # inside torus_integrator.py as "K_factor" variable
-                        newrow.append(row[e]/10.**14.)                
-                spectra.append(newrow)        
+                        newrow.append(row[e]/10.**14.)
+                spectra.append(newrow)
         three_pols.append(spectra)
-        
+
+
+
     # rearrange
     loaded_spectra_neutral = []
     for s in range(len(three_pols[0])):
         loaded_spectra_neutral.append([three_pols[0][s],three_pols[1][s], \
-                                   three_pols[2][s]])        
-    
+                                   three_pols[2][s]])
+
+
     return loaded_spectra, loaded_spectra_neutral
 
 # choose geometry type
@@ -319,7 +388,8 @@ for Gamma in Gammas_or_TBBs:
     for name_iqu in names_IQUs:
         print('... loading Stokes '+name_iqu)
         one_iqu, one_iqu_neutral = load_tables(tables_directory, name_iqu, first_ind, \
-                                      last_ind, collect)
+                                      last_ind, float(Gamma), \
+                                                  E_min, E_max)
         all_spectra.append(one_iqu)
         all_spectra_neutral.append(one_iqu_neutral)
     
