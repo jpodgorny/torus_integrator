@@ -1266,6 +1266,8 @@ class TorusModel:
             a_factor = TorusModel.compute_a_mu(float(self.mue),self.inctype_code)
             if self.xi0_val != 0.:
                 F_star = n_H*abs(self.xi0_val)*ergkeV*scale_factor*a_factor/4./np.pi/delta_energy
+            else:
+                F_star = n_H*1.*ergkeV*scale_factor*a_factor/4./np.pi/delta_energy
             local_primary.append(F_star*K_factor)
         
         return local_primary
